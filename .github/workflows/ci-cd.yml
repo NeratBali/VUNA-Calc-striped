@@ -29,7 +29,7 @@ jobs:
         run: npm ci
 
       - name: Verify application script compiles
-        run: node -e "require('./src/server.js'); console.log('App test compile successful');"
+        run: node -e "require('./src/app.js'); console.log('App test compile successful');"
 
   # ── JOB 2: DOCKER AUTOMATED BUILD ──
   docker-build:
