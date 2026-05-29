@@ -1,0 +1,11 @@
+# Dependencies (these are downloaded fresh in the cloud)
+node_modules/
+
+# Local testing and debug logs
+coverage/
+*.log
+
+# Private environment variables containing secrets
+.env
+.env.*
+!.env.example
