@@ -128,7 +128,7 @@ jobs:
             ${{ env.REGISTRY }}/${{ steps.string.outputs.owner }}/nodeapp-cicd:latest
             ${{ env.REGISTRY }}/${{ steps.string.outputs.owner }}/nodeapp-cicd:sha-${{ steps.short-sha.outputs.sha }}
 
- # ── JOB 5: CONTINUOUS REMOTE SERVER DEPLOYMENT ──
+# ── JOB 5: CONTINUOUS REMOTE SERVER DEPLOYMENT ──
   deploy:
     name: Deploy to Production Environment
     runs-on: ubuntu-latest
@@ -149,9 +149,10 @@ jobs:
           password: ${{ secrets.SERVER_PASSWORD }}
           port: ${{ secrets.SERVER_PORT }}
           source: "./*"
-          # ✅ FIX: Use a relative path to bypass CyberPanel's Jailed Shell restrictions
-          target: "./public_html"
+          # ✅ FIX: Target the pure directory string to accommodate strict jailed shells
+          target: "public_html"
           strip_components: 0
+          rm: false # Set to true later if you want it to wipe old files automatically
 
   # ── JOB 6: EXTERNAL LIVE AUTOMATED SMOKE TESTING ──
   verify-deploy:
