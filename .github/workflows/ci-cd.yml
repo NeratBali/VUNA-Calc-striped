@@ -128,7 +128,7 @@ jobs:
             ${{ env.REGISTRY }}/${{ steps.string.outputs.owner }}/nodeapp-cicd:latest
             ${{ env.REGISTRY }}/${{ steps.string.outputs.owner }}/nodeapp-cicd:sha-${{ steps.short-sha.outputs.sha }}
 
-  # ── JOB 5: CONTINUOUS REMOTE SERVER DEPLOYMENT ──
+# ── JOB 5: CONTINUOUS REMOTE SERVER DEPLOYMENT ──
   deploy:
     name: Deploy to Production Environment
     runs-on: ubuntu-latest
@@ -136,7 +136,8 @@ jobs:
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     environment:
       name: production
-      url: http://${{ secrets.SERVER_HOST }}
+      # ✅ FIX: Use your structural subdomain text string directly to satisfy deployment visibility
+      url: https://panel.vudse26.cloud
     steps:
       - name: Establish encrypted terminal shell link
         uses: appleboy/ssh-action@v1.0.3
