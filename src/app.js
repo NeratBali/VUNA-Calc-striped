@@ -4,7 +4,7 @@ const app = express();
 
 app.use(express.static(path.join(__dirname, '../')));
 
-app.get('/health', (req, res) => {
+app.get('/calcuate', (req, res) => {
   res.json({ 
     status: 'ok', 
     timestamp: new Date().toISOString(), 

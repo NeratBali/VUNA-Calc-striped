@@ -32,7 +32,6 @@ jobs:
         run: node -e "require('./src/app.js'); console.log('App test compile successful');"
 
   # ── JOB 2: DOCKER AUTOMATED BUILD ──
-  # ── JOB 2: DOCKER AUTOMATED BUILD ──
   docker-build:
     name: Docker Build & Registry Push
     runs-on: ubuntu-latest
