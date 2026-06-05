@@ -7,7 +7,8 @@
     "start": "node src/server.js",
     "test": "jest --coverage --coverageReporters=json --coverageReporters=text --coverageReporters=lcov",
     "test:ci": "jest --coverage --coverageReporters=json-summary --ci --forceExit",
-    "lint": "eslint src/ --ext .js"
+    "lint": "eslint src/ --ext .js",
+    "build": "node scripts/build.mjs"
   },
   "repository": {
     "type": "git",

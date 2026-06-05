@@ -2,8 +2,9 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [ main, develop ]
-  workflow_dispatch:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -14,169 +15,61 @@ env:
   REGISTRY: docker.io
 
 jobs:
-  # ── JOB 1: CODE LINT AND BUILD CHECK ──
-  lint-and-build:
-    name: Lint & Compile Verification
+  # ── STAGE 1: QUALITY ASSURANCE GATE ──
+  ci:
+    name: Lint & Test
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
     steps:
-      - name: Checkout source code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20', cache: 'npm' }
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Verify server loads without crashes
-        run: node -e "require('./src/app'); console.log('Application loaded OK');"
-
-  # ── JOB 2: PARALLEL PLATFORM MATRIX TESTING ──
-  test:
-    name: Unit Testing (Node ${{ matrix.node }})
+  # ── STAGE 2: CONTAINER REGISTRY SYNC ──
+  docker:
+    name: Docker Build & Push
     runs-on: ubuntu-latest
-    needs: [lint-and-build]
-    strategy:
-      fail-fast: false
-      matrix:
-        node: ['18', '20']
+    needs: [ci]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     steps:
-      - name: Checkout source
-        uses: actions/checkout@v4
-
-      - name: Set up Node.js ${{ matrix.node }}
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ matrix.node }}
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      # Generates standard coverage summaries as required by the grading sheet
-      - name: Run tests with structural metrics
-        run: |
-          mkdir -p coverage
-          echo '{"total": {"lines":{"covered":100,"total":100,"pct":100}}}' > coverage/coverage-summary.json
-
-      - name: Log code check results directly to workflow dashboard
-        run: |
-          echo '### Test Coverage Summary 🧪' >> $GITHUB_STEP_SUMMARY
-          echo '| Metric | Covered | Total | % |' >> $GITHUB_STEP_SUMMARY
-          echo '| Lines  | 100 | 100 | 100% |' >> $GITHUB_STEP_SUMMARY
-
-  # ── JOB 3: VULNERABILITY CVE ASSESSMENT ──
-  security-audit:
-    name: Dependency Security Scan
-    runs-on: ubuntu-latest
-    needs: [lint-and-build]
-    steps:
-      - name: Checkout source
-        uses: actions/checkout@v4
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Analyze package structural dependencies
-        run: npm audit --audit-level=high || echo 'Review required'
-
-  # ── JOB 4: DOCKER IMAGE COMPILES AND REGISTRY DISTRIBUTION ──
-  docker-build:
-    name: Docker Compilation & Hub Sync
-    runs-on: ubuntu-latest
-    needs: [test, security-audit]
-    permissions:
-      contents: read
-      packages: write
-    outputs:
-      image-tag: sha-${{ steps.short-sha.outputs.sha }}
-    steps:
-      - name: Checkout source
-        uses: actions/checkout@v4
-
-      - name: Extract short commit signature
-        id: short-sha
-        run: echo "sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
-
-      - name: Adjust user folder paths to safe lowercase formats
-        id: string
-        run: echo "owner=${OWNER,,}" >> $GITHUB_OUTPUT
-        env:
-          OWNER: ${{ github.repository_owner }}
-
-      - name: Set up Docker Buildx engine
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log into central container registry
-        uses: docker/login-action@v3
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Compile and distribute image tag versions
-        uses: docker/build-push-action@v6
+      - uses: docker/build-push-action@v6
         with:
           context: .
-          target: production
           push: true
           tags: |
-            ${{ env.REGISTRY }}/${{ steps.string.outputs.owner }}/nodeapp-cicd:latest
-            ${{ env.REGISTRY }}/${{ steps.string.outputs.owner }}/nodeapp-cicd:sha-${{ steps.short-sha.outputs.sha }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/vuna-calc-striped:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/vuna-calc-striped:${{ github.sha }}
 
-  # ── JOB 5: CONTINUOUS REMOTE SERVER DEPLOYMENT ──
+  # ── STAGE 3: PRODUCTION FILE DISTRIBUTION ──
   deploy:
-    name: Deploy to Production Environment
+    name: Deploy via FTP
     runs-on: ubuntu-latest
-    needs: [docker-build]
+    needs: [ci]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     environment:
       name: production
       url: https://nerat.vudse26.cloud
     steps:
-      # 🚀 Use direct shell git sync to completely bypass file-transfer/tar restrictions
-      - name: Execute Server-Side Git Workspace Pull
-        uses: appleboy/ssh-action@v1.0.3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20', cache: 'npm' }
+      - run: npm ci
+      - run: npm run build
+      
+      - name: Distribute Built Production Assets
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          password: ${{ secrets.SERVER_PASSWORD }}
-          port: ${{ secrets.SERVER_PORT }}
-          script: |
-            set -e
-            echo "Successfully authenticated with CyberPanel terminal shell."
-            cd public_html
-            
-            # Check if this folder is already initialized tracking your branch
-            if [ ! -d ".git" ]; then
-              echo "Initializing new repository link inside server webroot..."
-              git init
-              git remote add origin https://github.com/NeratBali/VUNA-Calc-striped.git
-            fi
-            
-            echo "Fetching changes and hard-resetting live environment to latest commit..."
-            git fetch --all
-            git reset --hard origin/main
-            echo "Deployment successfully synchronization complete!"
-
-  # ── JOB 6: EXTERNAL LIVE AUTOMATED SMOKE TESTING ──
-  verify-deploy:
-    name: Post-Deploy Quality Smoke Verification
-    runs-on: ubuntu-latest
-    needs: [deploy]
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    steps:
-      - name: Hold timeline for service configuration warmups
-        run: sleep 5
-
-      - name: Print real-time system success summaries
-        run: |
-          echo '## Deployment Successful 🚀' >> $GITHUB_STEP_SUMMARY
-          echo '| Item | Value |' >> $GITHUB_STEP_SUMMARY
-          echo '|------|-------|' >> $GITHUB_STEP_SUMMARY
-          echo "| Server Environment Status | Live / Operational |" >> $GITHUB_STEP_SUMMARY
-          echo "| Public Calculator URL | https://nerat.vudse26.cloud |" >> $GITHUB_STEP_SUMMARY
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftp
+          local-dir: ./dist/
+          server-dir: ./public_html/
