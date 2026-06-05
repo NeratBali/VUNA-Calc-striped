@@ -1,17 +1,20 @@
 {
   "name": "vuna-calc-striped",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "An advanced calculator app with a production-grade CI/CD pipeline",
+  "main": "src/server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node src/server.js",
+    "test": "jest --coverage --coverageReporters=json --coverageReporters=text --coverageReporters=lcov",
+    "test:ci": "jest --coverage --coverageReporters=json-summary --ci --forceExit",
+    "lint": "eslint src/ --ext .js"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/NeratBali/VUNA-Calc-striped.git"
   },
   "keywords": [],
-  "author": "",
+  "author": "Software Engineering Set 2025/26",
   "license": "ISC",
   "type": "commonjs",
   "bugs": {
@@ -20,5 +23,12 @@
   "homepage": "https://github.com/NeratBali/VUNA-Calc-striped#readme",
   "dependencies": {
     "express": "^5.2.1"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "collectCoverageFrom": ["src/**/*.js"],
+    "coverageThreshold": {
+      "global": { "branches": 70, "functions": 70, "lines": 80, "statements": 80 }
+    }
   }
 }
