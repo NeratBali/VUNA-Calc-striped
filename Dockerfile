@@ -2,21 +2,15 @@
 # Stage 1: builder — install ALL dependencies and prep source
 # ==========================================================
 FROM node:20-alpine AS builder
-
 WORKDIR /app
-
-# Copy package descriptors first to maximize Docker layer caching
 COPY package*.json ./
 RUN npm ci
-
-# Copy the remaining codebase over to the builder image space
 COPY . .
 
 # ==========================================================
 # Stage 2: production image — only runtime files for security
 # ==========================================================
 FROM node:20-alpine AS production
-
 WORKDIR /app
 
 # 🚨 MANUAL REQUIREMENT: Add a dedicated, non-root system user for security
@@ -26,12 +20,8 @@ RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 COPY package*.json ./
 RUN npm ci --omit=dev && npm cache clean --force
 
-# Copy application assets and backend source cleanly
-COPY --from=builder /app/src ./src
-COPY index.html ./
-COPY styles.css ./
-COPY script.js ./
-COPY completeScript.js ./
+# ✅ FIX: Copies your entire structured layout cleanly (including index.html and assets/)
+COPY --from=builder /app/ .
 
 # 🛡️ Switch active execution context away from root to your custom user
 USER appuser

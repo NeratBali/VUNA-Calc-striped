@@ -2,9 +2,13 @@ const express = require('express');
 const path = require('path');
 const app = express();
 
+app.use(express.json());
+
+// ✅ Point this to the root folder so Express can find index.html and the assets/ folder
 app.use(express.static(path.join(__dirname, '../')));
 
-app.get('/calcuate', (req, res) => {
+// Mandatory health endpoint for the pipeline
+app.get('/health', (req, res) => {
   res.json({ 
     status: 'ok', 
     timestamp: new Date().toISOString(), 
@@ -12,5 +16,4 @@ app.get('/calcuate', (req, res) => {
   });
 });
 
-module.exports = app; // Export it so other files can require it!
-// Just checking the username
+module.exports = app;
