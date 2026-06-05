@@ -128,7 +128,7 @@ jobs:
             ${{ env.REGISTRY }}/${{ steps.string.outputs.owner }}/nodeapp-cicd:latest
             ${{ env.REGISTRY }}/${{ steps.string.outputs.owner }}/nodeapp-cicd:sha-${{ steps.short-sha.outputs.sha }}
 
-# ── JOB 5: CONTINUOUS REMOTE SERVER DEPLOYMENT ──
+  # ── JOB 5: CONTINUOUS REMOTE SERVER DEPLOYMENT ──
   deploy:
     name: Deploy to Production Environment
     runs-on: ubuntu-latest
@@ -138,21 +138,30 @@ jobs:
       name: production
       url: https://nerat.vudse26.cloud
     steps:
-      - name: Checkout fresh source code
-        uses: actions/checkout@v4
-
-      - name: Secure SCP Sync to CyberPanel Webroot
-        uses: appleboy/scp-action@v0.1.7
+      # 🚀 Use direct shell git sync to completely bypass file-transfer/tar restrictions
+      - name: Execute Server-Side Git Workspace Pull
+        uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           password: ${{ secrets.SERVER_PASSWORD }}
           port: ${{ secrets.SERVER_PORT }}
-          source: "./*"
-          # ✅ FIX: Target the pure directory string to accommodate strict jailed shells
-          target: "public_html"
-          strip_components: 0
-          rm: false # Set to true later if you want it to wipe old files automatically
+          script: |
+            set -e
+            echo "Successfully authenticated with CyberPanel terminal shell."
+            cd public_html
+            
+            # Check if this folder is already initialized tracking your branch
+            if [ ! -d ".git" ]; then
+              echo "Initializing new repository link inside server webroot..."
+              git init
+              git remote add origin https://github.com/NeratBali/VUNA-Calc-striped.git
+            fi
+            
+            echo "Fetching changes and hard-resetting live environment to latest commit..."
+            git fetch --all
+            git reset --hard origin/main
+            echo "Deployment successfully synchronization complete!"
 
   # ── JOB 6: EXTERNAL LIVE AUTOMATED SMOKE TESTING ──
   verify-deploy:
