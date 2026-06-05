@@ -128,7 +128,7 @@ jobs:
             ${{ env.REGISTRY }}/${{ steps.string.outputs.owner }}/nodeapp-cicd:latest
             ${{ env.REGISTRY }}/${{ steps.string.outputs.owner }}/nodeapp-cicd:sha-${{ steps.short-sha.outputs.sha }}
 
-  # ── JOB 5: CONTINUOUS REMOTE SERVER DEPLOYMENT ──
+ # ── JOB 5: CONTINUOUS REMOTE SERVER DEPLOYMENT ──
   deploy:
     name: Deploy to Production Environment
     runs-on: ubuntu-latest
@@ -141,7 +141,6 @@ jobs:
       - name: Checkout fresh source code
         uses: actions/checkout@v4
 
-      # 📦 REPLACEMENT: Use lightweight SCP file transferring to bypass jailed shell drops
       - name: Secure SCP Sync to CyberPanel Webroot
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -150,7 +149,8 @@ jobs:
           password: ${{ secrets.SERVER_PASSWORD }}
           port: ${{ secrets.SERVER_PORT }}
           source: "./*"
-          target: "/home/nerat.vudse26.cloud/public_html"
+          # ✅ FIX: Use a relative path to bypass CyberPanel's Jailed Shell restrictions
+          target: "./public_html"
           strip_components: 0
 
   # ── JOB 6: EXTERNAL LIVE AUTOMATED SMOKE TESTING ──
