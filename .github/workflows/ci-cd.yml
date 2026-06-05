@@ -132,26 +132,27 @@ jobs:
   deploy:
     name: Deploy to Production Environment
     runs-on: ubuntu-latest
-    needs: [docker-build]
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    [cite_start]needs: [docker-build] [cite: 772]
+    [cite_start]if: github.ref == 'refs/heads/main' && github.event_name == 'push' [cite: 773]
     environment:
-      name: production
+      [cite_start]name: production [cite: 775]
       url: https://nerat.vudse26.cloud
     steps:
       - name: Checkout fresh source code
-        uses: actions/checkout@v4
+        [cite_start]uses: actions/checkout@v4 [cite: 779]
 
-      - name: Secure SFTP Sync to CyberPanel Webroot
-        uses: wlixcc/SFTP-Deploy-Action@v1.2.4
+      # 📦 REPLACEMENT: Use lightweight SCP file transferring to bypass jailed shell drops
+      - name: Secure SCP Sync to CyberPanel Webroot
+        uses: appleboy/scp-action@v0.1.7
         with:
-          username: ${{ secrets.SERVER_USER }}
-          password: ${{ secrets.SERVER_PASSWORD }}
-          server: ${{ secrets.SERVER_HOST }}
-          port: ${{ secrets.SERVER_PORT }}
-          local_path: './*'
-          # This points directly to your assigned public web folder
-          remote_path: '/home/nerat.vudse26.cloud/public_html'
-          delete_remote_files: false
+          [cite_start]host: ${{ secrets.SERVER_HOST }} [cite: 781]
+          [cite_start]username: ${{ secrets.SERVER_USER }} [cite: 782]
+          [cite_start]password: ${{ secrets.SERVER_PASSWORD }} [cite: 783]
+          [cite_start]port: ${{ secrets.SERVER_PORT }} [cite: 784]
+          source: "./*"
+          # Explicit target mapping matching your shared matrix parameters
+          target: "/home/nerat.vudse26.cloud/public_html"
+          strip_components: 0
 
   # ── JOB 6: EXTERNAL LIVE AUTOMATED SMOKE TESTING ──
   verify-deploy:
