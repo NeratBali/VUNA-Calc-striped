@@ -136,20 +136,22 @@ jobs:
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     environment:
       name: production
-      url: https://panel.vudse26.cloud
+      url: https://nerat.vudse26.cloud
     steps:
       - name: Checkout fresh source code
         uses: actions/checkout@v4
 
-      - name: Secure Web Sync to Hosting Partition
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+      - name: Secure SFTP Sync to CyberPanel Webroot
+        uses: wlixcc/SFTP-Deploy-Action@v1.2.4
         with:
-          server: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           password: ${{ secrets.SERVER_PASSWORD }}
-          port: 21 # Uses the standard web hosting file channel to bypass SSH firewall rules safely
-          local-dir: ./
-          # Synced assets travel cleanly to your webroot workspace
+          server: ${{ secrets.SERVER_HOST }}
+          port: ${{ secrets.SERVER_PORT }}
+          local_path: './*'
+          # This points directly to your assigned public web folder
+          remote_path: '/home/nerat.vudse26.cloud/public_html'
+          delete_remote_files: false
 
   # ── JOB 6: EXTERNAL LIVE AUTOMATED SMOKE TESTING ──
   verify-deploy:
@@ -167,4 +169,4 @@ jobs:
           echo '| Item | Value |' >> $GITHUB_STEP_SUMMARY
           echo '|------|-------|' >> $GITHUB_STEP_SUMMARY
           echo "| Server Environment Status | Live / Operational |" >> $GITHUB_STEP_SUMMARY
-          echo "| Hosting Gateway | https://panel.vudse26.cloud |" >> $GITHUB_STEP_SUMMARY
+          echo "| Public Calculator URL | https://nerat.vudse26.cloud |" >> $GITHUB_STEP_SUMMARY
